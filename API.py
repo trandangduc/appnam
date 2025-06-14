@@ -36,8 +36,8 @@ MODEL_PATH = 'mushrooms_multiclass_best_model.pth'
 CLASS_NAMES_FILE = 'mushroom_classes.json'
 POISONOUS_MAPPING_FILE = 'poisonous_mapping.json'
 
-# HUGGING FACE CONFIGURATION - THAY ĐỔI THÔNG TIN NÀY
-HUGGINGFACE_REPO = "trandangduc0/appnam"  # Thay bằng repo của bạn
+# HUGGING FACE CONFIGURATION
+HUGGINGFACE_REPO = "trandangduc0/appnam"
 HF_BASE_URL = f"https://huggingface.co/{HUGGINGFACE_REPO}/resolve/main"
 
 # Image preprocessing
@@ -47,6 +47,112 @@ TRANSFORMS = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=mean, std=std)
 ])
+
+# ================================================
+# EMBEDDED DATA - KHÔNG CẦN FILES RIÊNG BIỆT
+# ================================================
+
+# Class names mapping (47 classes)
+EMBEDDED_CLASS_NAMES = {
+    0: "Agaricus bisporus",
+    1: "Agaricus subrufescens",
+    2: "Amanita bisporigera",
+    3: "Amanita muscaria",
+    4: "Amanita ocreata",
+    5: "Amanita phalloides",
+    6: "Amanita smithiana",
+    7: "Amanita verna",
+    8: "Amanita virosa",
+    9: "Auricularia auricula-judae",
+    10: "Boletus edulis",
+    11: "Cantharellus cibarius",
+    12: "Clitocybe dealbata",
+    13: "Conocybe filaris",
+    14: "Coprinus comatus",
+    15: "Cordyceps sinensis",
+    16: "Cortinarius rubellus",
+    17: "Entoloma sinuatum",
+    18: "Flammulina velutipes",
+    19: "Galerina marginata",
+    20: "Ganoderma lucidum",
+    21: "Grifola frondosa",
+    22: "Gyromitra esculenta",
+    23: "Hericium erinaceus",
+    24: "Hydnum repandum",
+    25: "Hypholoma fasciculare",
+    26: "Inocybe erubescens",
+    27: "Lentinula edodes",
+    28: "Lepiota brunneoincarnata",
+    29: "Macrolepiota procera",
+    30: "Morchella esculenta",
+    31: "Omphalotus olearius",
+    32: "Paxillus involutus",
+    33: "Pholiota nameko",
+    34: "Pleurotus citrinopileatus",
+    35: "Pleurotus eryngii",
+    36: "Pleurotus ostreatus",
+    37: "Psilocybe semilanceata",
+    38: "Rhodophyllus rhodopolius",
+    39: "Russula emetica",
+    40: "Russula virescens",
+    41: "Scleroderma citrinum",
+    42: "Suillus luteus",
+    43: "Tremella fuciformis",
+    44: "Tricholoma matsutake",
+    45: "Truffles",
+    46: "Tuber melanosporum"
+}
+
+# Poisonous mapping
+EMBEDDED_POISONOUS_MAPPING = {
+    "Agaricus bisporus": False,
+    "Agaricus subrufescens": False,
+    "Amanita bisporigera": True,
+    "Amanita muscaria": True,
+    "Amanita ocreata": True,
+    "Amanita phalloides": True,
+    "Amanita smithiana": True,
+    "Amanita verna": True,
+    "Amanita virosa": True,
+    "Auricularia auricula-judae": False,
+    "Boletus edulis": False,
+    "Cantharellus cibarius": False,
+    "Clitocybe dealbata": True,
+    "Conocybe filaris": True,
+    "Coprinus comatus": False,
+    "Cordyceps sinensis": False,
+    "Cortinarius rubellus": True,
+    "Entoloma sinuatum": True,
+    "Flammulina velutipes": False,
+    "Galerina marginata": True,
+    "Ganoderma lucidum": False,
+    "Grifola frondosa": False,
+    "Gyromitra esculenta": True,
+    "Hericium erinaceus": False,
+    "Hydnum repandum": False,
+    "Hypholoma fasciculare": True,
+    "Inocybe erubescens": True,
+    "Lentinula edodes": False,
+    "Lepiota brunneoincarnata": True,
+    "Macrolepiota procera": False,
+    "Morchella esculenta": False,
+    "Omphalotus olearius": True,
+    "Paxillus involutus": True,
+    "Pholiota nameko": False,
+    "Pleurotus citrinopileatus": False,
+    "Pleurotus eryngii": False,
+    "Pleurotus ostreatus": False,
+    "Psilocybe semilanceata": True,
+    "Rhodophyllus rhodopolius": True,
+    "Russula emetica": True,
+    "Russula virescens": False,
+    "Scleroderma citrinum": True,
+    "Suillus luteus": False,
+    "Tremella fuciformis": False,
+    "Tricholoma matsutake": False,
+    "Truffles": False,
+    "Tuber melanosporum": False
+}
 
 # Global variables
 CLASS_NAMES = {}
@@ -58,33 +164,28 @@ def check_file_valid(file_path):
         return False
     
     try:
-        # Kiểm tra kích thước file
         file_size = os.path.getsize(file_path)
         logger.info(f"📏 File size: {file_size/1024/1024:.1f}MB")
         
         if file_path.endswith('.pth'):
-            if file_size < 1000:  # File quá nhỏ
+            if file_size < 1000:
                 logger.error("❌ Model file too small")
                 return False
             
-            # Kiểm tra header file
             with open(file_path, 'rb') as f:
                 header = f.read(100)
-                # Nếu bắt đầu bằng < thì là HTML
                 if header.startswith(b'<'):
                     logger.error("❌ File is HTML, not a model")
                     return False
                 
-                # PyTorch files thường bắt đầu với PK (zip format) hoặc pickle
                 if header.startswith(b'PK') or header.startswith(b'\x80'):
                     logger.info("✅ Valid PyTorch model file")
                     return True
         
         elif file_path.endswith('.json'):
-            if file_size < 10:  # JSON quá nhỏ
+            if file_size < 10:
                 return False
             
-            # Thử parse JSON
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     json.load(f)
@@ -119,14 +220,12 @@ def download_file_from_huggingface(filename, local_path):
                         f.write(chunk)
                         downloaded_size += len(chunk)
                         
-                        # Progress log cho file lớn
                         if total_size > 1024*1024 and downloaded_size % (1024*1024) == 0:
                             progress = (downloaded_size / total_size) * 100 if total_size > 0 else 0
                             logger.info(f"📥 Downloaded: {progress:.1f}%")
             
             logger.info(f"💾 Download completed: {downloaded_size/1024/1024:.1f}MB")
             
-            # Verify file
             if check_file_valid(local_path):
                 logger.info(f"✅ {filename} downloaded and verified successfully!")
                 return True
@@ -138,7 +237,6 @@ def download_file_from_huggingface(filename, local_path):
                 
         elif response.status_code == 404:
             logger.error(f"❌ File {filename} not found on Hugging Face (404)")
-            logger.error(f"🔍 Please check if the file exists at: {url}")
             return False
         else:
             logger.error(f"❌ HTTP Error {response.status_code} downloading {filename}")
@@ -159,90 +257,85 @@ def download_all_files():
     success_count = 0
     
     for remote_name, local_path in files_to_download:
-        # Kiểm tra file đã tồn tại và hợp lệ chưa
         if os.path.exists(local_path) and check_file_valid(local_path):
             logger.info(f"✅ {local_path} already exists and valid")
             success_count += 1
             continue
         
-        # Download file
         if download_file_from_huggingface(remote_name, local_path):
             success_count += 1
         else:
             logger.warning(f"⚠️ Failed to download {remote_name}")
     
     logger.info(f"📊 Downloaded {success_count}/{len(files_to_download)} files successfully")
-    return success_count >= 1  # Ít nhất phải có model file
+    return success_count >= 1
 
 def load_class_names():
-    """Load class names"""
+    """Load class names - ưu tiên embedded data"""
     global CLASS_NAMES
     
+    logger.info("🔄 Loading class names...")
+    
+    # Sử dụng embedded data trước
+    CLASS_NAMES = EMBEDDED_CLASS_NAMES.copy()
+    logger.info(f"✅ Using embedded class names: {len(CLASS_NAMES)} classes")
+    
+    # Thử load từ file nếu có (để override nếu cần)
     if os.path.exists(CLASS_NAMES_FILE) and check_file_valid(CLASS_NAMES_FILE):
         try:
             with open(CLASS_NAMES_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                CLASS_NAMES = {int(k) if str(k).isdigit() else k: v for k, v in data.items()}
-            logger.info(f"✅ Loaded {len(CLASS_NAMES)} classes from file")
-            return
+                # Chuyển đổi format nếu cần (name: index -> index: name)
+                if data and isinstance(list(data.values())[0], int):
+                    # Format: {"Agaricus bisporus": 0} -> {0: "Agaricus bisporus"}
+                    file_classes = {v: k for k, v in data.items()}
+                    CLASS_NAMES.update(file_classes)
+                    logger.info(f"✅ Updated with {len(file_classes)} classes from file")
+                else:
+                    # Format: {0: "Agaricus bisporus"}
+                    file_classes = {int(k) if str(k).isdigit() else k: v for k, v in data.items()}
+                    CLASS_NAMES.update(file_classes)
+                    logger.info(f"✅ Updated with {len(file_classes)} classes from file")
         except Exception as e:
-            logger.error(f"❌ Error loading class names: {e}")
+            logger.error(f"❌ Error loading class names from file: {e}")
     
-    # Fallback classes
-    CLASS_NAMES = {
-        0: "Agaricus bisporus",
-        1: "Amanita muscaria", 
-        2: "Boletus edulis",
-        3: "Cantharellus cibarius",
-        4: "Pleurotus ostreatus",
-        5: "Shiitake",
-        6: "Ganoderma lucidum",
-        7: "Amanita phalloides",
-        8: "Lactarius deliciosus",
-        9: "Morchella esculenta"
-    }
-    logger.info(f"📝 Using fallback classes: {len(CLASS_NAMES)}")
+    logger.info(f"📝 Final class count: {len(CLASS_NAMES)}")
 
 def load_poisonous_mapping():
-    """Load poisonous mapping"""
+    """Load poisonous mapping - ưu tiên embedded data"""
     global POISONOUS_MAPPING
     
+    logger.info("🔄 Loading poisonous mapping...")
+    
+    # Sử dụng embedded data
+    POISONOUS_MAPPING = EMBEDDED_POISONOUS_MAPPING.copy()
+    logger.info(f"✅ Using embedded poisonous mapping: {len(POISONOUS_MAPPING)} entries")
+    
+    # Thử load từ file nếu có (để override nếu cần)
     if os.path.exists(POISONOUS_MAPPING_FILE) and check_file_valid(POISONOUS_MAPPING_FILE):
         try:
             with open(POISONOUS_MAPPING_FILE, 'r', encoding='utf-8') as f:
-                POISONOUS_MAPPING = json.load(f)
-            logger.info(f"✅ Loaded poisonous mapping from file")
-            return
+                file_mapping = json.load(f)
+                POISONOUS_MAPPING.update(file_mapping)
+                logger.info(f"✅ Updated with mapping from file")
         except Exception as e:
-            logger.error(f"❌ Error loading poisonous mapping: {e}")
+            logger.error(f"❌ Error loading poisonous mapping from file: {e}")
     
-    # Fallback mapping
-    POISONOUS_MAPPING = {
-        "Agaricus bisporus": False,
-        "Amanita muscaria": True,
-        "Boletus edulis": False,
-        "Cantharellus cibarius": False,
-        "Pleurotus ostreatus": False,
-        "Shiitake": False,
-        "Ganoderma lucidum": False,
-        "Amanita phalloides": True,
-        "Lactarius deliciosus": False,
-        "Morchella esculenta": False
-    }
-    logger.info(f"📝 Using fallback poisonous mapping")
+    logger.info(f"📝 Final mapping count: {len(POISONOUS_MAPPING)}")
 
 def load_model():
-    """Load model với Hugging Face integration"""
+    """Load model với embedded data"""
     try:
         logger.info("🚀 Starting model loading process...")
         
-        # Download files từ Hugging Face nếu cần
-        if not download_all_files():
-            logger.error("❌ Critical files download failed")
-        
-        # Load class names và poisonous mapping
+        # Load embedded data trước
         load_class_names()
         load_poisonous_mapping()
+        
+        # Download model file từ Hugging Face nếu cần
+        if not os.path.exists(MODEL_PATH) or not check_file_valid(MODEL_PATH):
+            logger.info("🔄 Attempting to download model file...")
+            download_file_from_huggingface(MODEL_PATH, MODEL_PATH)
         
         num_classes = len(CLASS_NAMES)
         logger.info(f"🔧 Creating model with {num_classes} classes")
@@ -250,49 +343,42 @@ def load_model():
         # Tạo model architecture
         model = timm.create_model("rexnet_150", pretrained=False, num_classes=num_classes)
         
-        # Kiểm tra và load model weights
-        if not os.path.exists(MODEL_PATH) or not check_file_valid(MODEL_PATH):
-            logger.warning("⚠️ Model file not available, using pretrained model")
-            model = timm.create_model("rexnet_150", pretrained=True, num_classes=num_classes)
-            model.to(DEVICE)
-            model.eval()
-            return model
-        
-        # Load trained weights
-        try:
-            logger.info(f"🔄 Loading weights from {MODEL_PATH}")
-            
-            # Load checkpoint với error handling
-            checkpoint = torch.load(MODEL_PATH, map_location=DEVICE, weights_only=False)
-            
-            # Xử lý format khác nhau
-            if isinstance(checkpoint, dict):
-                if 'model_state_dict' in checkpoint:
-                    state_dict = checkpoint['model_state_dict']
-                    logger.info("📦 Found model_state_dict in checkpoint")
-                elif 'state_dict' in checkpoint:
-                    state_dict = checkpoint['state_dict']
-                    logger.info("📦 Found state_dict in checkpoint")
+        # Load trained weights nếu có
+        if os.path.exists(MODEL_PATH) and check_file_valid(MODEL_PATH):
+            try:
+                logger.info(f"🔄 Loading weights from {MODEL_PATH}")
+                
+                checkpoint = torch.load(MODEL_PATH, map_location=DEVICE, weights_only=False)
+                
+                if isinstance(checkpoint, dict):
+                    if 'model_state_dict' in checkpoint:
+                        state_dict = checkpoint['model_state_dict']
+                        logger.info("📦 Found model_state_dict in checkpoint")
+                    elif 'state_dict' in checkpoint:
+                        state_dict = checkpoint['state_dict']
+                        logger.info("📦 Found state_dict in checkpoint")
+                    else:
+                        state_dict = checkpoint
+                        logger.info("📦 Using checkpoint as state_dict")
                 else:
                     state_dict = checkpoint
-                    logger.info("📦 Using checkpoint as state_dict")
-            else:
-                state_dict = checkpoint
-                logger.info("📦 Using checkpoint directly")
-            
-            # Load weights
-            missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
-            
-            if missing_keys:
-                logger.warning(f"⚠️ Missing keys: {len(missing_keys)} keys")
-            if unexpected_keys:
-                logger.warning(f"⚠️ Unexpected keys: {len(unexpected_keys)} keys")
-            
-            logger.info("✅ Loaded trained weights successfully")
-            
-        except Exception as e:
-            logger.error(f"❌ Error loading weights: {e}")
-            logger.info("📝 Using pretrained model instead")
+                    logger.info("📦 Using checkpoint directly")
+                
+                missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+                
+                if missing_keys:
+                    logger.warning(f"⚠️ Missing keys: {len(missing_keys)} keys")
+                if unexpected_keys:
+                    logger.warning(f"⚠️ Unexpected keys: {len(unexpected_keys)} keys")
+                
+                logger.info("✅ Loaded trained weights successfully")
+                
+            except Exception as e:
+                logger.error(f"❌ Error loading weights: {e}")
+                logger.info("📝 Using pretrained model instead")
+                model = timm.create_model("rexnet_150", pretrained=True, num_classes=num_classes)
+        else:
+            logger.warning("⚠️ Model file not available, using pretrained model")
             model = timm.create_model("rexnet_150", pretrained=True, num_classes=num_classes)
         
         model.to(DEVICE)
@@ -452,14 +538,12 @@ def health_check():
         "model_loaded": model is not None,
         "device": str(DEVICE),
         "num_classes": len(CLASS_NAMES),
+        "embedded_classes": len(EMBEDDED_CLASS_NAMES),
+        "embedded_mappings": len(EMBEDDED_POISONOUS_MAPPING),
         "model_file_exists": os.path.exists(MODEL_PATH),
         "model_file_valid": check_file_valid(MODEL_PATH) if os.path.exists(MODEL_PATH) else False,
         "huggingface_repo": HUGGINGFACE_REPO,
-        "files_status": {
-            "model": check_file_valid(MODEL_PATH) if os.path.exists(MODEL_PATH) else False,
-            "classes": check_file_valid(CLASS_NAMES_FILE) if os.path.exists(CLASS_NAMES_FILE) else False,
-            "poisonous_mapping": check_file_valid(POISONOUS_MAPPING_FILE) if os.path.exists(POISONOUS_MAPPING_FILE) else False
-        }
+        "data_source": "embedded"
     })
 
 @app.route('/test', methods=['GET'])
@@ -469,37 +553,42 @@ def test_endpoint():
         "message": "🍄 Mushroom API working!",
         "model_status": "Loaded" if model else "Not loaded",
         "classes": len(CLASS_NAMES),
-        "huggingface_repo": HUGGINGFACE_REPO
+        "huggingface_repo": HUGGINGFACE_REPO,
+        "data_embedded": True
+    })
+
+@app.route('/classes', methods=['GET'])
+def get_classes():
+    """Get all mushroom classes"""
+    return jsonify({
+        "classes": CLASS_NAMES,
+        "count": len(CLASS_NAMES),
+        "poisonous_mapping": POISONOUS_MAPPING
     })
 
 @app.route('/redownload', methods=['POST'])
 def redownload_files():
-    """Force redownload all files từ Hugging Face"""
+    """Force redownload model file từ Hugging Face"""
     try:
-        # Xóa files cũ
-        files_to_remove = [MODEL_PATH, CLASS_NAMES_FILE, POISONOUS_MAPPING_FILE]
-        for file_path in files_to_remove:
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                logger.info(f"🗑️ Removed {file_path}")
+        if os.path.exists(MODEL_PATH):
+            os.remove(MODEL_PATH)
+            logger.info(f"🗑️ Removed {MODEL_PATH}")
         
-        # Download lại
-        success = download_all_files()
+        success = download_file_from_huggingface(MODEL_PATH, MODEL_PATH)
         
         if success:
-            # Reload model
             global model
             model = load_model()
             
             return jsonify({
                 "status": "success",
-                "message": "Files redownloaded and model reloaded",
+                "message": "Model file redownloaded and reloaded",
                 "model_loaded": model is not None
             })
         else:
             return jsonify({
                 "status": "error",
-                "message": "Failed to redownload files"
+                "message": "Failed to redownload model file"
             }), 500
             
     except Exception as e:
@@ -509,7 +598,7 @@ def redownload_files():
 if __name__ == '__main__':
     print("🍄" + "="*50)
     print("🍄 MUSHROOM RECOGNITION API")
-    print("🍄 WITH HUGGING FACE INTEGRATION")
+    print("🍄 WITH EMBEDDED DATA")
     print("🍄" + "="*50)
     
     init_database()
@@ -517,9 +606,10 @@ if __name__ == '__main__':
     print(f"📱 Device: {DEVICE}")
     print(f"🤗 Hugging Face Repo: {HUGGINGFACE_REPO}")
     print(f"🔧 Model: {'✅ Loaded' if model else '❌ Failed'}")
-    print(f"🗂️ Classes: {len(CLASS_NAMES)}")
+    print(f"🗂️ Classes: {len(CLASS_NAMES)} (embedded: {len(EMBEDDED_CLASS_NAMES)})")
+    print(f"🧪 Poisonous mappings: {len(POISONOUS_MAPPING)}")
     print(f"📁 Model file exists: {os.path.exists(MODEL_PATH)}")
-    print(f"📄 Model file valid: {check_file_valid(MODEL_PATH) if os.path.exists(MODEL_PATH) else 'N/A'}")
+    print(f"📄 Using embedded data: ✅")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
