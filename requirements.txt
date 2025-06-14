@@ -7,3 +7,4 @@ numpy==1.24.3
 google-generativeai==0.3.0
 timm==0.9.7
 gunicorn==21.2.0
+requests==2.31.0
