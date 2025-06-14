@@ -137,6 +137,36 @@ def load_poisonous_mapping():
         logger.error(f"❌ Error loading poisonous mapping: {e}")
         POISONOUS_MAPPING = {}
 
+def download_model_from_drive():
+    """Download model từ Google Drive nếu chưa có local"""
+    import requests
+    
+    # Google Drive direct download link
+    # Thay YOUR_FILE_ID bằng ID thực tế của file
+    DRIVE_FILE_ID = "1y-U6hSXXB6GVPp-Q8w3_gaG3e2s5lYOH"
+    DRIVE_URL = f"https://drive.google.com/uc?export=download&id={DRIVE_FILE_ID}"
+    
+    try:
+        if not os.path.exists(MODEL_PATH):
+            logger.info("🔄 Downloading model from Google Drive...")
+            
+            response = requests.get(DRIVE_URL, stream=True)
+            response.raise_for_status()
+            
+            with open(MODEL_PATH, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            logger.info("✅ Model downloaded successfully")
+        else:
+            logger.info("✅ Model already exists locally")
+            
+    except Exception as e:
+        logger.error(f"❌ Error downloading model: {e}")
+        return False
+    
+    return True
+
 def load_model():
     """Load model AI với architecture CHÍNH XÁC từ training"""
     try:
@@ -154,16 +184,24 @@ def load_model():
         # Tạo model với architecture CHÍNH XÁC như training
         model = timm.create_model("rexnet_150", pretrained=False, num_classes=num_classes)
         
-        # Kiểm tra file model tồn tại
+        # Thử download model nếu chưa có
+        if not os.path.exists(MODEL_PATH):
+            download_success = download_model_from_drive()
+            if not download_success:
+                logger.warning("⚠️ Could not download model, using pretrained")
+                model = timm.create_model("rexnet_150", pretrained=True, num_classes=num_classes)
+                model.to(DEVICE)
+                model.eval()
+                return model
+        
+        # Load trained weights
         if os.path.exists(MODEL_PATH):
-            # Load trained weights
             state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
             model.load_state_dict(state_dict)
             logger.info(f"✅ Loaded trained model from {MODEL_PATH}")
         else:
             logger.warning(f"⚠️ Model file not found: {MODEL_PATH}")
             logger.info("📝 Using pretrained model for demo (accuracy will be limited)")
-            # Tạo model pretrained để demo
             model = timm.create_model("rexnet_150", pretrained=True, num_classes=num_classes)
         
         model.to(DEVICE)
